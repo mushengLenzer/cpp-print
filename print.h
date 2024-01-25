@@ -7,6 +7,12 @@
 #include <deque>
 #include <array>
 #include <list>
+#include <iterator>
+#include <forward_list>
+#include <map>
+#include <unordered_map>
+#include <set>
+#include <unordered_set>
 
 struct Params {
     char sep;
@@ -19,54 +25,56 @@ void _print(const T &obj, std::ostream &out);
 
 void _print(const bool &obj, std::ostream &out);
 
+// Check if it is a sequence container
 template<typename T>
-void _print(const std::vector<T> &obj, std::ostream &out);
-
-template<typename T>
-void _print(const std::deque<T> &obj, std::ostream &out);
-
-template<typename T, std::size_t N>
-void _print(const std::array<T, N> &obj, std::ostream &out);
-
-template<typename T>
-struct isSequenceContainers : public std::false_type {
+struct isSequenceContainer : public std::false_type {
 };
 
 template<typename T>
-struct isSequenceContainers<std::vector<T>> : public std::true_type {
+struct isSequenceContainer<std::vector<T>> : public std::true_type {
 };
 
 template<typename T>
-struct isSequenceContainers<std::deque<T>> : public std::true_type {
+struct isSequenceContainer<std::deque<T>> : public std::true_type {
 };
 
 template<typename T, std::size_t N>
-struct isSequenceContainers<std::array<T, N>> : public std::true_type {
+struct isSequenceContainer<std::array<T, N>> : public std::true_type {
 };
 
 template<typename T>
-struct isSequenceContainers<std::list<T>> : public std::true_type {
+struct isSequenceContainer<std::list<T>> : public std::true_type {
+};
+
+template<typename T>
+struct isSequenceContainer<std::forward_list<T>> : public std::true_type {
 };
 
 
+// Check if it is a map container
 template<typename T>
-void _print(const T &obj, std::ostream &out) {
-    if (isSequenceContainers<T>::value) {
-        bool isFirst = true;
-        out << '[';
-        for (auto const &entry: obj) {
-            if (!isFirst)
-                out << ", ";
-            isFirst = false;
-            _print(entry, out);
-        }
-        out << ']';
-    } else {
-        out << obj;
-    }
+struct isMapContainer : public std::false_type {
+};
 
+template<typename K, typename V>
+struct isMapContainer<std::map<K, V>> : public std::true_type {
+};
 
-}
+template<typename K, typename V>
+struct isMapContainer<std::multimap<K, V>> : public std::true_type {
+};
+
+template<typename K, typename V>
+struct isMapContainer<std::unordered_map<K, V>> : public std::true_type {
+};
+
+template<typename K, typename V>
+struct isMapContainer<std::unordered_multimap<K, V>> : public std::true_type {
+};
+
+template<typename T>
+concept Iterable = isSequenceContainer<T>::value;
+
 
 // bool
 void _print(const bool &obj, std::ostream &out) {
@@ -76,59 +84,24 @@ void _print(const bool &obj, std::ostream &out) {
         out << "False";
 }
 
-//vector
-template<typename T>
-void _print(const std::vector<T> &obj, std::ostream &out) {
-    bool isFirst = true;
-    out << '[';
-    for (auto const &entry: obj) {
-        if (!isFirst)
-            out << ", ";
-        isFirst = false;
-        _print(entry, out);
+template<Iterable T>
+void _print(const T &obj, std::ostream &out) {
+    if (isSequenceContainer<T>::value) {
+        bool isFirst = true;
+        out << '[';
+        for (auto const &entry: obj) {
+            if (!isFirst)
+                out << ", ";
+            isFirst = false;
+            _print(entry, out);
+        }
+        out << ']';
     }
-    out << ']';
-}
-
-//deque
-template<typename T>
-void _print(const std::deque<T> &obj, std::ostream &out) {
-    bool isFirst = true;
-    out << '[';
-    for (auto const &entry: obj) {
-        if (!isFirst)
-            out << ", ";
-        isFirst = false;
-        _print(entry, out);
-    }
-    out << ']';
-}
-
-//array
-template<typename T, std::size_t N>
-void _print(const std::array<T, N> &obj, std::ostream &out) {
-    bool isFirst = true;
-    out << '[';
-    for (auto const &entry: obj) {
-        if (!isFirst)
-            out << ", ";
-        isFirst = false;
-        _print(entry, out);
-    }
-    out << ']';
 }
 
 template<typename T>
-void _print(const std::list<T> &obj, std::ostream &out) {
-    bool isFirst = true;
-    out << '[';
-    for (auto const &entry: obj) {
-        if (!isFirst)
-            out << ", ";
-        isFirst = false;
-        _print(entry, out);
-    }
-    out << ']';
+void _print(const T &obj, std::ostream &out) {
+    out << obj;
 }
 
 
