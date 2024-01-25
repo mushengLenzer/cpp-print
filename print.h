@@ -20,11 +20,6 @@ struct Params {
     std::ostream *file;
 };
 
-template<typename T>
-void _print(const T &obj, std::ostream &out);
-
-void _print(const bool &obj, std::ostream &out);
-
 // Check if it is a sequence container
 template<typename T>
 struct isSequenceContainer : public std::false_type {
@@ -72,9 +67,54 @@ template<typename K, typename V>
 struct isMapContainer<std::unordered_multimap<K, V>> : public std::true_type {
 };
 
+// Check if it is a set container
+template<typename T>
+struct isSetContainer : public std::false_type {
+};
+
+template<typename K, typename V>
+struct isSetContainer<std::set<K, V>> : public std::true_type {
+};
+
+template<typename K, typename V>
+struct isSetContainer<std::multiset<K, V>> : public std::true_type {
+};
+
+template<typename K, typename V>
+struct isSetContainer<std::unordered_set<K, V>> : public std::true_type {
+};
+
+template<typename K, typename V>
+struct isSetContainer<std::unordered_multiset<K, V>> : public std::true_type {
+};
+
+//concept
 template<typename T>
 concept Iterable = isSequenceContainer<T>::value;
 
+template<typename T>
+concept Map = isMapContainer<T>::value;
+
+template<typename T>
+concept Set = isSetContainer<T>::value;
+
+
+template<typename T>
+void _print(const T &obj, std::ostream &out);
+
+void _print(const bool &obj, std::ostream &out);
+
+template<Iterable T>
+void _print(const T &obj, std::ostream &out);
+
+template<Map T>
+void _print(const T &obj, std::ostream &out);
+
+// fundamental types
+template<typename T>
+void _print(const T &obj, std::ostream &out) {
+    out << obj;
+}
 
 // bool
 void _print(const bool &obj, std::ostream &out) {
@@ -84,24 +124,48 @@ void _print(const bool &obj, std::ostream &out) {
         out << "False";
 }
 
+// sequence container
 template<Iterable T>
 void _print(const T &obj, std::ostream &out) {
-    if (isSequenceContainer<T>::value) {
-        bool isFirst = true;
-        out << '[';
-        for (auto const &entry: obj) {
-            if (!isFirst)
-                out << ", ";
-            isFirst = false;
-            _print(entry, out);
-        }
-        out << ']';
+    bool isFirst = true;
+    out << '[';
+    for (auto const &entry: obj) {
+        if (!isFirst)
+            out << ", ";
+        isFirst = false;
+        _print(entry, out);
     }
+    out << ']';
 }
 
-template<typename T>
+//map container
+template<Map T>
 void _print(const T &obj, std::ostream &out) {
-    out << obj;
+    bool isFirst = true;
+    out << '{';
+    for (auto const &entry: obj) {
+        if (!isFirst)
+            out << ", ";
+        isFirst = false;
+        _print(entry.first, out);
+        out << ": ";
+        _print(entry.second, out);
+    }
+    out << '}';
+}
+
+//set container
+template<Set T>
+void _print(const T &obj, std::ostream &out) {
+    bool isFirst = true;
+    out << '{';
+    for (auto const &entry: obj) {
+        if (!isFirst)
+            out << ", ";
+        isFirst = false;
+        _print(entry, out);
+    }
+    out << '}';
 }
 
 
