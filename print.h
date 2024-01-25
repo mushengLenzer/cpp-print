@@ -1,11 +1,12 @@
-//
-// Created by Administrator on 2024/1/25.
-//
-
 #ifndef PRINT_PRINT_H
 #define PRINT_PRINT_H
 
-#include<iostream>
+#include <type_traits>
+#include <iostream>
+#include <vector>
+#include <deque>
+#include <array>
+#include <list>
 
 struct Params {
     char sep;
@@ -13,43 +14,132 @@ struct Params {
     std::ostream *file;
 };
 
-void _print(int obj,std::ostream &out) {
-    out << obj;
+template<typename T>
+void _print(const T &obj, std::ostream &out);
+
+void _print(const bool &obj, std::ostream &out);
+
+template<typename T>
+void _print(const std::vector<T> &obj, std::ostream &out);
+
+template<typename T>
+void _print(const std::deque<T> &obj, std::ostream &out);
+
+template<typename T, std::size_t N>
+void _print(const std::array<T, N> &obj, std::ostream &out);
+
+template<typename T>
+struct isSequenceContainers : public std::false_type {
+};
+
+template<typename T>
+struct isSequenceContainers<std::vector<T>> : public std::true_type {
+};
+
+template<typename T>
+struct isSequenceContainers<std::deque<T>> : public std::true_type {
+};
+
+template<typename T, std::size_t N>
+struct isSequenceContainers<std::array<T, N>> : public std::true_type {
+};
+
+template<typename T>
+struct isSequenceContainers<std::list<T>> : public std::true_type {
+};
+
+
+template<typename T>
+void _print(const T &obj, std::ostream &out) {
+    if (isSequenceContainers<T>::value) {
+        bool isFirst = true;
+        out << '[';
+        for (auto const &entry: obj) {
+            if (!isFirst)
+                out << ", ";
+            isFirst = false;
+            _print(entry, out);
+        }
+        out << ']';
+    } else {
+        out << obj;
+    }
+
+
 }
 
-//void print(Params Params) {
-//    return;
-//}
+// bool
+void _print(const bool &obj, std::ostream &out) {
+    if (obj)
+        out << "True";
+    else
+        out << "False";
+}
 
+//vector
+template<typename T>
+void _print(const std::vector<T> &obj, std::ostream &out) {
+    bool isFirst = true;
+    out << '[';
+    for (auto const &entry: obj) {
+        if (!isFirst)
+            out << ", ";
+        isFirst = false;
+        _print(entry, out);
+    }
+    out << ']';
+}
 
-// 变参函数模板，对每个元素进行操作
-//template<typename T, typename... Rest>
-//void print(const Params params, const T &obj, const Rest &... rest) {
-//    print(obj);
-//    print(params, rest...); // 递归，操作剩余的元素
-//}
+//deque
+template<typename T>
+void _print(const std::deque<T> &obj, std::ostream &out) {
+    bool isFirst = true;
+    out << '[';
+    for (auto const &entry: obj) {
+        if (!isFirst)
+            out << ", ";
+        isFirst = false;
+        _print(entry, out);
+    }
+    out << ']';
+}
 
-//template<typename T, typename... Rest>
-//void print(const T& obj, const Rest&... rest) {
-//    const Params params={' ', '\n', &std::cout};
-//    print(obj);
-//    std::cout << params.sep;
-//    print(params, rest...); // 递归，操作剩余的元素
-//}
+//array
+template<typename T, std::size_t N>
+void _print(const std::array<T, N> &obj, std::ostream &out) {
+    bool isFirst = true;
+    out << '[';
+    for (auto const &entry: obj) {
+        if (!isFirst)
+            out << ", ";
+        isFirst = false;
+        _print(entry, out);
+    }
+    out << ']';
+}
 
-//template<typename T, typename... Rest>
-//void print(const Params params, const Rest&... rest) {
-//    print(params, rest...); // 递归，操作剩余的元素
-//}
+template<typename T>
+void _print(const std::list<T> &obj, std::ostream &out) {
+    bool isFirst = true;
+    out << '[';
+    for (auto const &entry: obj) {
+        if (!isFirst)
+            out << ", ";
+        isFirst = false;
+        _print(entry, out);
+    }
+    out << ']';
+}
+
 
 template<typename... Args>
 void print(const Args &... args) {
 //    initialization
     Params params = {' ', '\n', &std::cout};
 
-    auto &out = *params.file;
+    std::ostream &out = *params.file;
     bool isFirst = true;
-    ([&isFirst, &out, &params](auto &&args) {
+    ([&isFirst, &out, &params](const Args &args) {
         if (!isFirst)
             out << params.sep;
         isFirst = false;
@@ -67,9 +157,9 @@ void print(Params params, const Args &... args) {
     if (params.file == nullptr) params.file = &std::cout;
 
 
-    auto &out = *params.file;
+    std::ostream &out = *params.file;
     bool isFirst = true;
-    ([&isFirst, &out, &params](auto &&args) {
+    ([&isFirst, &out, &params](const Args &args) {
         if (!isFirst)
             out << params.sep;
         isFirst = false;
