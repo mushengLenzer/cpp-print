@@ -16,7 +16,10 @@
 #include <tuple>
 #include <memory>
 #include <bitset>
+#include <stack>
 
+const int enum_min = -127;
+const int enum_max = 127;
 
 struct Params {
     char sep;
@@ -215,9 +218,71 @@ void _print(const std::pair<T1, T2> &obj, std::ostream &out) {
     out << ")";
 }
 
+// pointer, unique_ptr and shared_ptr
 template<Ptr T>
 void _print(const T &obj, std::ostream &out) {
     _print(*obj, out);
+}
+
+// get enum name of compile-time
+template<auto value>
+constexpr auto getName() {
+    std::string_view name;
+#ifdef __clang__
+    name = __PRETTY_FUNCTION__;
+    auto start = name.find("value = ") + 8; // 8 is length of "value = "
+    auto end = name.find_last_of(']');
+    return std::string_view{ name.data() + start, end - start };
+
+#elif defined(__GNUC__)
+    name = __PRETTY_FUNCTION__;
+    auto start = name.find("value = ") + 8; // 8 is length of "value = "
+    auto end = name.find_last_of(']');
+    return std::string_view{name.data() + start, end - start};
+
+#elif defined(_MSC_VER)
+    name = __FUNCSIG__;
+    auto start = name.find("enum_name<") + 10; // 10 is length of "enum_name<"
+    auto end = name.find_last_of('>');
+    return std::string_view{ name.data() + start, end - start };
+#endif
+}
+
+// get enum name of runtime
+template<typename T>
+requires std::is_enum_v<T>
+constexpr std::string_view getName(T value) {
+    constexpr auto num = enum_max - enum_min + 1;
+    constexpr std::array<std::string_view, num> names
+            {
+                    [] <std::size_t... Is>(std::index_sequence<Is...>)
+            {
+                return std::array<std::string_view, num>{getName<static_cast<T>(Is + enum_min)>()...};
+            }(std::make_index_sequence<num>{})
+            };
+    return names[static_cast<std::size_t>(value) - enum_min];
+}
+
+
+// enum
+template<typename T>
+requires std::is_enum_v<T>
+void _print(const T &obj, std::ostream &out) {
+    out << getName(obj);
+}
+
+//__int128
+void _print(const __int128 &obj, std::ostream &out) {
+    __int128 temp = obj;
+    std::stack<int> s;
+    while (temp != 0) {
+        s.push(temp % 10);
+        temp /= 10;
+    }
+    while (!s.empty()) {
+        out << s.top();
+        s.pop();
+    }
 }
 
 template<typename... Args>
