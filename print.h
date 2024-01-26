@@ -13,6 +13,10 @@
 #include <unordered_map>
 #include <set>
 #include <unordered_set>
+#include <tuple>
+#include <memory>
+#include <bitset>
+
 
 struct Params {
     char sep;
@@ -43,6 +47,10 @@ struct isSequenceContainer<std::list<T>> : public std::true_type {
 
 template<typename T>
 struct isSequenceContainer<std::forward_list<T>> : public std::true_type {
+};
+
+template<typename T, std::size_t N>
+struct isSequenceContainer<T[N]> : public std::true_type {
 };
 
 
@@ -98,6 +106,11 @@ concept Map = isMapContainer<T>::value;
 template<typename T>
 concept Set = isSetContainer<T>::value;
 
+template<typename T>
+concept Ptr = std::is_pointer<T>::value ||
+              std::is_same<T, std::unique_ptr<typename T::element_type>>::value ||
+              std::is_same<T, std::shared_ptr<typename T::element_type>>::value;
+
 
 template<typename T>
 void _print(const T &obj, std::ostream &out);
@@ -109,6 +122,13 @@ void _print(const T &obj, std::ostream &out);
 
 template<Map T>
 void _print(const T &obj, std::ostream &out);
+
+template<typename... T>
+void _print(const std::tuple<T...> &obj, std::ostream &out);
+
+template<typename T1, typename T2>
+void _print(const std::pair<T1, T2> &obj, std::ostream &out);
+
 
 // fundamental types
 template<typename T>
@@ -168,6 +188,37 @@ void _print(const T &obj, std::ostream &out) {
     out << '}';
 }
 
+// tuple
+template<typename... T>
+void _print(const std::tuple<T...> &obj, std::ostream &out) {
+    bool isFirst = true;
+    out << "(";
+    std::apply(
+            [&isFirst, &out](const T &... entries) {
+                ([&isFirst, &out](const T &entry) {
+                    if (!isFirst)
+                        out << ", ";
+                    isFirst = false;
+                    _print(entry, out);
+                }(entries), ...);
+            }, obj);
+    out << ")";
+}
+
+// pair
+template<typename T1, typename T2>
+void _print(const std::pair<T1, T2> &obj, std::ostream &out) {
+    out << "(";
+    out << obj.first;
+    out << ", ";
+    out << obj.second;
+    out << ")";
+}
+
+template<Ptr T>
+void _print(const T &obj, std::ostream &out) {
+    _print(*obj, out);
+}
 
 template<typename... Args>
 void print(const Args &... args) {
