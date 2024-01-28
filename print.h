@@ -112,7 +112,8 @@ concept Set = isSetContainer<T>::value;
 template<typename T>
 concept Ptr = std::is_pointer<T>::value ||
               std::is_same<T, std::unique_ptr<typename T::element_type>>::value ||
-              std::is_same<T, std::shared_ptr<typename T::element_type>>::value;
+              std::is_same<T, std::shared_ptr<typename T::element_type>>::value ||
+              std::is_same<T, std::weak_ptr<typename T::element_type>>::value;
 
 
 template<typename T>
@@ -126,11 +127,29 @@ void _print(const T &obj, std::ostream &out);
 template<Map T>
 void _print(const T &obj, std::ostream &out);
 
+template<Set T>
+void _print(const T &obj, std::ostream &out);
+
 template<typename... T>
 void _print(const std::tuple<T...> &obj, std::ostream &out);
 
 template<typename T1, typename T2>
 void _print(const std::pair<T1, T2> &obj, std::ostream &out);
+
+template<Ptr T>
+void _print(const T &obj, std::ostream &out);
+
+template<typename T>
+requires std::is_enum_v<T>
+void _print(const T &obj, std::ostream &out);
+
+void _print(const __int128 &obj, std::ostream &out);
+
+template<typename... Args>
+void print(const Args &... args);
+
+template<typename... Args>
+void print(Params params, const Args &... args);
 
 
 // fundamental types
@@ -230,21 +249,49 @@ constexpr auto getName() {
     std::string_view name;
 #ifdef __clang__
     name = __PRETTY_FUNCTION__;
-    auto start = name.find("value = ") + 8; // 8 is length of "value = "
     auto end = name.find_last_of(']');
-    return std::string_view{ name.data() + start, end - start };
+    auto start = end;
+    int cnt = 0;
+    for (; start >= 0; --start) {
+        if (name[start] == ':')
+            cnt++;
+        if (name[start] == ' ' || cnt == 3)
+            break;
+    }
+    start++;
+    return std::string_view{name.data() + start, end - start};
 
 #elif defined(__GNUC__)
     name = __PRETTY_FUNCTION__;
-    auto start = name.find("value = ") + 8; // 8 is length of "value = "
     auto end = name.find_last_of(']');
+    auto start = end;
+    int cnt = 0;
+    for (; start >= 0; --start) {
+        if (name[start] == ':')
+            cnt++;
+        if (name[start] == ' ' || cnt == 3)
+            break;
+    }
+    start++;
     return std::string_view{name.data() + start, end - start};
+//    auto start = name.find("value = ") + 8; // 8 is length of "value = "
+//    name = std::string_view{name.data() + start};
+//    start = name.find("::");
+//    name = std::string_view{name.data() + start};
 
 #elif defined(_MSC_VER)
     name = __FUNCSIG__;
-    auto start = name.find("enum_name<") + 10; // 10 is length of "enum_name<"
     auto end = name.find_last_of('>');
-    return std::string_view{ name.data() + start, end - start };
+    auto start = end;
+    int cnt = 0;
+    for (; start >= 0; --start) {
+        if (name[start] == ':')
+            cnt++;
+        if (name[start] == '<' || name[start] == ' ' || cnt == 3)
+            break;
+    }
+    start++;
+    return std::string_view{name.data() + start, end - start};
 #endif
 }
 
@@ -253,7 +300,7 @@ template<typename T>
 requires std::is_enum_v<T>
 constexpr std::string_view getName(T value) {
     constexpr auto num = enum_max - enum_min + 1;
-    constexpr std::array<std::string_view, num> names
+    std::array<std::string_view, num> names
             {
                     [] <std::size_t... Is>(std::index_sequence<Is...>)
             {
