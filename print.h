@@ -22,9 +22,9 @@ const int enum_min = -127;
 const int enum_max = 127;
 
 struct Params {
-    char sep;
-    char end;
-    std::ostream *file;
+    std::string sep = " ";
+    std::string end = "\n";
+    std::ostream *file = &std::cout;
 };
 
 // Check if it is a sequence container
@@ -119,6 +119,8 @@ concept Ptr = std::is_pointer<T>::value ||
 template<typename T>
 void _print(const T &obj, std::ostream &out);
 
+void _print(const char *obj, std::ostream &out);
+
 void _print(const bool &obj, std::ostream &out);
 
 template<Iterable T>
@@ -155,6 +157,11 @@ void print(Params params, const Args &... args);
 // fundamental types
 template<typename T>
 void _print(const T &obj, std::ostream &out) {
+    out << obj;
+}
+
+// c-style string
+void _print(const char *obj, std::ostream &out) {
     out << obj;
 }
 
@@ -335,8 +342,7 @@ void _print(const __int128 &obj, std::ostream &out) {
 template<typename... Args>
 void print(const Args &... args) {
 //    initialization
-    Params params = {' ', '\n', &std::cout};
-
+    Params params;
     std::ostream &out = *params.file;
     bool isFirst = true;
     ([&isFirst, &out, &params](const Args &args) {
@@ -352,11 +358,6 @@ void print(const Args &... args) {
 template<typename... Args>
 void print(Params params, const Args &... args) {
 //    initialization
-    if (params.sep == 0) params.sep = ' ';
-    if (params.end == 0) params.end = '\n';
-    if (params.file == nullptr) params.file = &std::cout;
-
-
     std::ostream &out = *params.file;
     bool isFirst = true;
     ([&isFirst, &out, &params](const Args &args) {

@@ -194,3 +194,15 @@ TEST(print, pointers) {
     EXPECT_EQ(out.str(), "[3, 5, 7, 11]\n");
 
 }
+
+TEST(print, sepAndEnd) {
+    std::ostringstream out;
+
+    out.str("");
+    print({.sep = "|", .end = "", .file = &out}, 2024, "hello", true);
+    EXPECT_EQ(out.str(), "2024|hello|True");
+
+    out.str("");
+    print({.sep = "", .end = "", .file = &out}, 2024, "hello", true);
+    EXPECT_EQ(out.str(), "2024helloTrue");
+}
